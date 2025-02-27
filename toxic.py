@@ -169,3 +169,5 @@ if __name__ == '__main__':
     window = HyperlinkExtractor()
     window.show()
     sys.exit(app.exec_())
+
+# pyinstaller --onefile --windowed toxic.py
