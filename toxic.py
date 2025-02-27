@@ -10,35 +10,39 @@ class HyperlinkExtractor(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Hyperlink Extractor")
-        self.resize(600, 400)
+        self.resize(700, 500)
 
         # Use a list to store detected hyperlinks in order.
         self.links = []
         self.last_clipboard_content = ""
 
-        # Create GUI components.
+        # GUI Components
         self.counter_label = QLabel("Total Links: 0")
-        self.status_label = QLabel("")  # Small console to display new link messages.
-        self.info_label = QLabel("Automatically capturing hyperlinks from your clipboard...")
+        self.status_label = QLabel("")
         self.list_widget = QListWidget()
         self.copy_button = QPushButton("Copy All Hyperlinks")
         self.reset_button = QPushButton("Reset Links")
 
-        # Layout for counter and status messages.
+        # Style individual labels
+        self.counter_label.setStyleSheet("font-weight: bold; font-size: 14pt;")
+        self.status_label.setStyleSheet("color: #555; font-size: 10pt;")
+
+        # Top layout for counter and status messages.
         top_layout = QVBoxLayout()
         top_layout.addWidget(self.counter_label)
         top_layout.addWidget(self.status_label)
 
-        # Layout for buttons.
+        # Button layout.
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.copy_button)
         button_layout.addWidget(self.reset_button)
+        button_layout.setSpacing(10)
 
         # Main layout.
         main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(8)
         main_layout.addLayout(top_layout)
-        main_layout.addWidget(self.info_label)
-        main_layout.addWidget(QLabel("Detected Hyperlinks:"))
         main_layout.addWidget(self.list_widget)
         main_layout.addLayout(button_layout)
 
@@ -46,18 +50,56 @@ class HyperlinkExtractor(QMainWindow):
         container.setLayout(main_layout)
         self.setCentralWidget(container)
 
-        # Connect button signals.
+        # Apply overall style sheet for a modern, neutral look.
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #fafafa;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 10pt;
+            }
+            QLabel {
+                color: #333;
+            }
+            QListWidget {
+                background-color: #fff;
+                border: 1px solid #ccc;
+                padding: 5px;
+            }
+            QPushButton {
+                background-color: #444;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #333;
+            }
+        """)
+
+        # Connect signals.
         self.copy_button.clicked.connect(self.copy_links_to_clipboard)
         self.reset_button.clicked.connect(self.reset_links)
 
-        # Get the clipboard instance and start polling.
+        # Get the clipboard instance.
         self.clipboard = QApplication.clipboard()
+        # Initialize last_clipboard_content with the current clipboard data,
+        # so that any pre-existing clipboard content is ignored.
+        mime = self.clipboard.mimeData()
+        if mime.hasHtml():
+            self.last_clipboard_content = mime.html()
+        elif mime.hasText():
+            self.last_clipboard_content = mime.text()
+        else:
+            self.last_clipboard_content = ""
+
+        # Start polling the clipboard.
         self.timer = QTimer()
         self.timer.timeout.connect(self.check_clipboard)
         self.timer.start(500)
 
     def check_clipboard(self):
-        """Poll the clipboard for new content and process it only if changed."""
+        """Polls the clipboard for new content and processes it only if changed."""
         mime = self.clipboard.mimeData()
         # Prioritize HTML content over plain text.
         if mime.hasHtml():
@@ -72,9 +114,7 @@ class HyperlinkExtractor(QMainWindow):
                 self.process_plain_text(text)
 
     def process_html(self, html):
-        """
-        Extracts hyperlinks from raw HTML by searching for href attributes.
-        """
+        """Extracts hyperlinks from raw HTML by searching for href attributes."""
         pattern = r'href=[\'"]([^\'" >]+)'
         found_links = re.findall(pattern, html)
         new_count = 0
@@ -87,9 +127,7 @@ class HyperlinkExtractor(QMainWindow):
             self.update_status(new_count)
 
     def process_plain_text(self, text):
-        """
-        Extracts hyperlinks from plain text.
-        """
+        """Extracts hyperlinks from plain text."""
         pattern = r'https?://[^\s\'"<>]+'
         found_links = re.findall(pattern, text)
         new_count = 0
@@ -110,7 +148,7 @@ class HyperlinkExtractor(QMainWindow):
         self.counter_label.setText(f"Total Links: {len(self.links)}")
 
     def update_status(self, new_count):
-        """Updates the status console with the number of new links added."""
+        """Updates the status message with the number of new links added."""
         self.status_label.setText(f"Added {new_count} new link{'s' if new_count != 1 else ''}.")
 
     def copy_links_to_clipboard(self):
